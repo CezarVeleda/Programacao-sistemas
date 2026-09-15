@@ -1,25 +1,28 @@
 package virtualmachine;
 
-// Essas Operações aqui são um exemplo do Enum
+// Mnemonic | Format | Opcode
 public enum OpCode {
-    ADD("000", "ADD"),
-    SUB("001", "SUB"),
-    MULT("010", "MULT"),
-    DIV("011", "DIV");
+    ADD("ADD", (byte) 4, (byte) 18);
 
-    private final String code;
     private final String mnemonic;
+    private final Byte format;
+    private final Byte code;
 
-    OpCode(String code, String mnemonic) {
-        this.code = code;
+    OpCode(String mnemonic, Byte format, Byte code) {
         this.mnemonic = mnemonic;
+        this.format = format;
+        this.code = code;
     }
-
-    public String getCode() {
-        return code;
-    }
-
+    
     public String getMnemonic() {
         return mnemonic;
+    }
+    
+    public Byte getCode() {
+        return code;
+    }
+    
+    public Byte getFormat() {
+        return format;
     }
 }
