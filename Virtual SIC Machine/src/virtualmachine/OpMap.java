@@ -1,5 +1,6 @@
 package virtualmachine;
 
+//FORA DE USO
 
 import VirtualMachine.OP;
 import java.util.HashMap;

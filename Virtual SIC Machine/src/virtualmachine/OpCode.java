@@ -1,5 +1,6 @@
 package virtualmachine;
 
+//FORA DE USO
 // Mnemonic | Format | Opcode
 public enum OpCode {
     ADD("ADD", (byte) 4, (byte) 18);
