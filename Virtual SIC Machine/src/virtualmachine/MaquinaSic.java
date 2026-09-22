@@ -1,16 +1,16 @@
 package VirtualMachine;
 
 import utils.DataUtils;
-//import virtualmachine.OpMap;
 import virtualmachine.Maquina;
-//import virtualmachine.OpCode;
 import virtualmachine.Registrador;
 import virtualmachine.Condicional;
+import virtualmachine.Snapshot;
 
 public class MaquinaSic implements  Maquina {
     private Registrador[] registradores;
     byte[] memory;
-    //OpMap opMap;
+    private boolean executionEnded = false;
+    private static final int ENDERECO_SENTINELA = 0xFFFFFF;
 
     public MaquinaSic() {
         memory = new byte[4095 * 3];
@@ -22,12 +22,18 @@ public class MaquinaSic implements  Maquina {
     }
     
     @Override
-    public void run(){
-        
+    public void run() {
+        while (!executionEnded) {
+            step();
+        }
     }
     
     @Override
     public void step() {
+        if (executionEnded) {
+            return; // Impede que a máquina rode lixo de memória se já acabou
+        }
+    
         // Endereço lógico em palavras
         int pcValue = registradores[8].getIntVal(); 
         
@@ -43,6 +49,12 @@ public class MaquinaSic implements  Maquina {
         registradores[8].setIntVal(pcValue + 1); 
     
         compute(instruction);
+        
+        // CHECAGEM DE FIM DE PROGRAMA:
+        // Se a instrução executada foi um RSUB do programa principal, o PC agora terá o sentinela
+        if (registradores[8].getIntVal() == ENDERECO_SENTINELA) {
+            executionEnded = true;
+        }
     }
     
     @Override
@@ -78,6 +90,23 @@ public class MaquinaSic implements  Maquina {
         }
     }
     
+    @Override
+    public Snapshot getMachineStateSnapshot() {
+        return new Snapshot(
+            registradores[0].getIntVal(), // A
+            registradores[1].getIntVal(), // X
+            registradores[2].getIntVal(), // L
+            registradores[3].getIntVal(), // B
+            registradores[4].getIntVal(), // S
+            registradores[5].getIntVal(), // T
+            registradores[6].getIntVal(), // F
+            registradores[8].getIntVal(), // PC
+            registradores[9].getIntVal(), // SW
+            getConditionCode(),           // Condicional atual extraído do SW
+            executionEnded                // Estado da simulação
+        );
+    }
+    
     private void resetar() {
         // Zera todos os registradores
         for (Registrador r : registradores) {
@@ -86,6 +115,13 @@ public class MaquinaSic implements  Maquina {
         
         // Zera a memória física
         java.util.Arrays.fill(memory, (byte) 0);
+        
+        // PREPARAÇÃO PARA O FIM DO PROGRAMA: 
+        // Coloca o endereço sentinela no Registrador L (índice 2)
+        registradores[2].setIntVal(ENDERECO_SENTINELA);
+        
+        // Reinicia a flag de execução
+        executionEnded = false;
     }
 
     private void compute(byte[] ins) {
