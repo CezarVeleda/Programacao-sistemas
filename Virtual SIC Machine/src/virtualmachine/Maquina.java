@@ -5,5 +5,5 @@ public interface Maquina {
     void step();
     void run();
     //Snapshot getMachineStateSnapshot();
-    //void buildAndReset();
+    void compilar(String codigoTxt, boolean formatoPalavra);
 }
