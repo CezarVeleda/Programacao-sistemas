@@ -1,9 +1,9 @@
 package VirtualMachine;
 
 import utils.DataUtils;
+import virtualmachine.Condicional;
 import virtualmachine.Maquina;
 import virtualmachine.Registrador;
-import virtualmachine.Condicional;
 import virtualmachine.Snapshot;
 
 public class MaquinaSic implements  Maquina {
@@ -363,29 +363,88 @@ public class MaquinaSic implements  Maquina {
     private void stt(byte[] ins){}
     private void stx(byte[] ins){}
     
-    //Grupo 3: Aritmética, Lógica e Testes de Memória (F3/4)
+// --- GRUPO 3: ARITMÉTICA, LÓGICA E TESTES DE MEMÓRIA (F3/4) ---
+
+    /**
+     * Método auxiliar para extrair o valor do operando.
+     * Se for imediato (#), o endereço calculado em decodeFlags já é o próprio valor.
+     * Caso contrário, faz a leitura de uma palavra (24 bits) da memória.
+     */
+    
+    private int getOperandValue(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        return isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
+    }
+
     private void add(byte[] ins) {
-        int targetAddress = decodeFlags(ins); // Calcula o endereço
-    
-        int operand;
-        if (isImmediate(ins)) {
-            operand = targetAddress; // Imediato: o "endereço" é o próprio valor
-        } else {
-            operand = readMemoryWord(targetAddress); // Direto/Indireto: busca na memória
-        }
-    
-        // ADD: A <- (A) + operando[cite: 1]
+        int operand = getOperandValue(ins);
         int valorA = registradores[0].getIntVal();
         registradores[0].setIntVal(valorA + operand);
     }
-    
-    private void sub(byte[] ins){}
-    private void mul(byte[] ins){}
-    private void div(byte[] ins){}
-    private void and(byte[] ins){}
-    private void or(byte[] ins){}
-    private void comp(byte[] ins){}
-    private void tix(byte[] ins){}
+
+    private void sub(byte[] ins) {
+        int operand = getOperandValue(ins);
+        int valorA = registradores[0].getIntVal();
+        registradores[0].setIntVal(valorA - operand);
+    }
+
+    private void mul(byte[] ins) {
+        int operand = getOperandValue(ins);
+        int valorA = registradores[0].getIntVal();
+        registradores[0].setIntVal(valorA * operand);
+    }
+
+    private void div(byte[] ins) {
+        int operand = getOperandValue(ins);
+        if (operand != 0) {
+            int valorA = registradores[0].getIntVal();
+            registradores[0].setIntVal(valorA / operand);
+        } else {
+            System.err.println("Erro: Divisão por zero na instrução DIV.");
+        }
+    }
+
+    private void and(byte[] ins) {
+        int operand = getOperandValue(ins);
+        int valorA = registradores[0].getIntVal();
+        registradores[0].setIntVal(valorA & operand);
+    }
+
+    private void or(byte[] ins) {
+        int operand = getOperandValue(ins);
+        int valorA = registradores[0].getIntVal();
+        registradores[0].setIntVal(valorA | operand);
+    }
+
+    private void comp(byte[] ins) {
+        int operand = getOperandValue(ins);
+        int valorA = registradores[0].getIntVal();
+
+        if (valorA == operand) {
+            setConditionCode(Condicional.Igual);
+        } else if (valorA > operand) {
+            setConditionCode(Condicional.Maior);
+        } else {
+            setConditionCode(Condicional.Menor);
+        }
+    }
+
+    private void tix(byte[] ins) {
+        int operand = getOperandValue(ins);
+
+        // Incrementa o Registrador X (índice 1) em 1 unidade
+        int valorX = registradores[1].getIntVal() + 1;
+        registradores[1].setIntVal(valorX);
+
+        // Compara o novo valor de X com o operando e atualiza o Condition Code
+        if (valorX == operand) {
+            setConditionCode(Condicional.Igual);
+        } else if (valorX > operand) {
+            setConditionCode(Condicional.Maior);
+        } else {
+            setConditionCode(Condicional.Menor);
+        }
+    }
     
     //Grupo 4: Operações Puras de Registrador (F2)
     private void addr(byte[] ins) {
