@@ -1,13 +1,11 @@
 package gui;
 
-import java.awt.HeadlessException;
 import javax.swing.*;
 import VirtualMachine.MaquinaSic;
-import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import javax.swing.plaf.ColorUIResource;
 
 public class Window extends JFrame {
 
@@ -30,12 +28,15 @@ public class Window extends JFrame {
         setPreferredSize(d);
         setMinimumSize(d);
         setMaximumSize(d);
-        //######################################################
-        setLayout(new GridBagLayout());
-
-        //######################################################
+        
+        // ######################################################
+        Container contentPane = getContentPane();
+        contentPane.setLayout(new GridBagLayout());
+        contentPane.setBackground(Palette.getBACKGROUNDColor()); 
+        // ######################################################
+        
         pack();
-
+        
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setVisible(true);
@@ -43,7 +44,7 @@ public class Window extends JFrame {
 
     private void initPanels() {
         appPanel = new AppPanel();
-        //################################
+        
         upperPanel = new JPanel();
         upperPanel.setBackground(Palette.getBACKGROUNDColor());
         lowerPanel = new JPanel();
@@ -52,38 +53,39 @@ public class Window extends JFrame {
         leftPanel.setBackground(Palette.getBACKGROUNDColor());
         rightPanel = new JPanel();
         rightPanel.setBackground(Palette.getBACKGROUNDColor());
-        //#################################
+        
+        
+        final double spacing = 0.1;
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.gridwidth = 3;
         gbc.gridheight = 1;
-        gbc.weightx = .9;
-        gbc.weighty = .1;
+        gbc.weightx = spacing*2;
+        gbc.weighty = spacing;
         gbc.gridx = 0;
         gbc.gridy = 0;
-        add(upperPanel, gbc);
+        getContentPane().add(upperPanel, gbc);
 
         gbc.gridy = 2;
-        add(lowerPanel, gbc);
+        getContentPane().add(lowerPanel, gbc);
 
         gbc.gridy = 1;
-        gbc.weightx = .1;
-        gbc.weighty = .9;
+        gbc.weightx = spacing;
+        gbc.weighty = spacing*2;
         gbc.gridwidth = 1;
-        add(leftPanel, gbc);
+        getContentPane().add(leftPanel, gbc);
 
         gbc.gridx = 2;
-        add(rightPanel, gbc);
+        getContentPane().add(rightPanel, gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 1;
-        gbc.weightx = .8;
-        gbc.weighty = .8;
-        add(appPanel, gbc);
+        gbc.weightx = 1.0 - spacing*2;
+        gbc.weighty = 1.0 - spacing*2;
+        getContentPane().add(appPanel, gbc);
     }
 
     public void setSicMachine(MaquinaSic sicMachine) {
         this.sicMachine = sicMachine;
     }
-
 }

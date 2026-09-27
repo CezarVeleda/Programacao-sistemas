@@ -1,17 +1,17 @@
 package gui;
 
 import VirtualMachine.MaquinaSic;
-import java.awt.GridLayout;
+import java.awt.BorderLayout;
 import javax.swing.*;
 
 public class AppPanel extends JPanel {
 
     private Thread thread = null;
     private boolean isRunning = false;
-    MaquinaSic sicMachine = null;
-    JTabbedPane tabbedPane;
-    ControlPanel controlPanel;
-    ExecutionPanel executionPanel;
+    private MaquinaSic sicMachine = null;
+    private JMenuBar menuBar;
+
+    private ExecutionPanel executionPanel;
 
     private void start() {
         thread = new Thread(() -> run());
@@ -30,11 +30,7 @@ public class AppPanel extends JPanel {
     }
 
     private void update() {
-        
-        controlPanel.update();
-        
         if (sicMachine == null) {
-            //System.out.println("ERROR: No SIC Machine in AppPanel");
             return;
         }
     }
@@ -46,15 +42,87 @@ public class AppPanel extends JPanel {
 
     private void init() {
         setBackground(Palette.getBACKGROUNDColor());
-        setLayout(new GridLayout());
+        setLayout(new BorderLayout());
+        createMenuBar();
+        add(menuBar, BorderLayout.NORTH);
 
-        controlPanel = new ControlPanel();
         executionPanel = new ExecutionPanel();
-        
-        tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("CONTROLE", controlPanel);
-        tabbedPane.addTab("EXECUÇÃO", executionPanel);
+        add(executionPanel, BorderLayout.CENTER);
+    }
 
-        add(tabbedPane);
+    private void createMenuBar() {
+        menuBar = new JMenuBar();
+
+        JMenu fileMenu = new JMenu("Arquivo");
+        JMenuItem loadFileItem = new JMenuItem("Carregar arquivo");
+        JMenuItem exportFileResultItem = new JMenuItem("Exportar Resultado");
+        fileMenu.add(loadFileItem);
+        fileMenu.add(exportFileResultItem);
+
+        JMenu compileMenu = new JMenu("Compilar");
+        JMenuItem compileItem = new JMenuItem("Compilar código de máquina");
+
+        compileMenu.add(compileItem);
+
+        JMenu assemblyMenu = new JMenu("Montar");
+        JMenuItem AssemblyItem = new JMenuItem("Montar código");
+
+        assemblyMenu.add(AssemblyItem);
+        
+        JMenu machineMenu = new JMenu("Maquina");
+        JMenuItem runItem = new JMenuItem("Rodar");
+        JMenuItem stepItem = new JMenuItem("Passo");
+        JMenuItem resetItem = new JMenuItem("Reiniciar");
+        
+        machineMenu.add(runItem);
+        machineMenu.add(stepItem);
+        machineMenu.add(resetItem);
+
+        JMenu exitMenu = new JMenu("Sair");
+        JMenuItem exitItem = new JMenuItem("Sair do programa");
+        exitMenu.add(exitItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(compileMenu);
+        menuBar.add(assemblyMenu);
+        menuBar.add(machineMenu);
+        menuBar.add(exitMenu);
+
+        //######################################################
+        //  ACTION LISTENERS
+        //######################################################
+        loadFileItem.addActionListener(e -> openFile());
+        exportFileResultItem.addActionListener(e -> {
+            //System.out.println("EXPORTAR");
+        });
+
+        compileItem.addActionListener(e -> {
+            //System.out.println("COMPILAR");
+        });
+
+        AssemblyItem.addActionListener(e -> {
+            //System.out.println("MONTAR");
+        });
+        
+        runItem.addActionListener(e -> {
+            //System.out.println("RODAR");
+        });
+        stepItem.addActionListener(e -> {
+            //System.out.println("PASSO");
+        });
+        resetItem.addActionListener(e -> {
+            //System.out.println("REINICIAR");
+        });
+
+        exitItem.addActionListener(e -> System.exit(0));
+    }
+
+    private void openFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        int res = fileChooser.showOpenDialog(this);
+
+        if (res == JFileChooser.APPROVE_OPTION) {
+            executionPanel.setCurrentFile(fileChooser.getSelectedFile());
+        }
     }
 }
