@@ -6,4 +6,5 @@ public interface Maquina {
     void run();
     Snapshot getMachineStateSnapshot();
     void compilar(String codigoTxt, boolean formatoPalavra);
+    void resetar();
 }

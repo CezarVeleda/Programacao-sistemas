@@ -87,5 +87,6 @@ public class Window extends JFrame {
 
     public void setSicMachine(MaquinaSic sicMachine) {
         this.sicMachine = sicMachine;
+        appPanel.setSicMachine(sicMachine);
     }
 }

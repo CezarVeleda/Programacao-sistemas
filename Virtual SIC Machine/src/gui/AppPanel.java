@@ -98,6 +98,8 @@ public class AppPanel extends JPanel {
 
         compileItem.addActionListener(e -> {
             //System.out.println("COMPILAR");
+            String code = executionPanel.getFileContent();
+            sicMachine.compilar(code, true);
         });
 
         AssemblyItem.addActionListener(e -> {
@@ -106,12 +108,17 @@ public class AppPanel extends JPanel {
         
         runItem.addActionListener(e -> {
             //System.out.println("RODAR");
+            while(sicMachine.getMachineStateSnapshot().executionEnded == false) {
+                sicMachine.step();
+            }
         });
         stepItem.addActionListener(e -> {
             //System.out.println("PASSO");
+            sicMachine.step();
         });
         resetItem.addActionListener(e -> {
             //System.out.println("REINICIAR");
+            sicMachine.resetar();
         });
 
         exitItem.addActionListener(e -> System.exit(0));
@@ -124,5 +131,9 @@ public class AppPanel extends JPanel {
         if (res == JFileChooser.APPROVE_OPTION) {
             executionPanel.setCurrentFile(fileChooser.getSelectedFile());
         }
+    }
+    
+    public void setSicMachine(MaquinaSic sicMachine) {
+        this.sicMachine = sicMachine;
     }
 }

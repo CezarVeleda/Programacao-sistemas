@@ -107,7 +107,8 @@ public class MaquinaSic implements  Maquina {
         );
     }
     
-    private void resetar() {
+    @Override
+    public void resetar() {
         // Zera todos os registradores
         for (Registrador r : registradores) {
             r.setIntVal(0);
