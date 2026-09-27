@@ -4,7 +4,7 @@ import java.awt.Color;
 
 public enum Palette {
     PRIMARY(222, 222, 222),
-    SECONDARY(125, 150, 180),
+    SECONDARY(238, 238, 238),
     BACKGROUND(125, 150, 150),;
 
     private final int red;

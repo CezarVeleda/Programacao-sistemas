@@ -9,8 +9,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class AppPanel extends JPanel {
 
     private Thread thread = null;
-    private boolean isRunning = false;
-    private MaquinaSic sicMachine = null;
+    private volatile boolean isRunning = false;
+    private volatile MaquinaSic sicMachine = null;
     private JMenuBar menuBar;
 
     private ExecutionPanel executionPanel;
@@ -32,9 +32,10 @@ public class AppPanel extends JPanel {
     }
 
     private void update() {
-        if (sicMachine == null) {
+        if (sicMachine == null || executionPanel == null) {
             return;
-        }
+        } 
+        executionPanel.update(sicMachine.getMachineStateSnapshot());
     }
 
     public AppPanel() {
@@ -110,9 +111,7 @@ public class AppPanel extends JPanel {
         
         runItem.addActionListener(e -> {
             //System.out.println("RODAR");
-            while(sicMachine.getMachineStateSnapshot().executionEnded == false) {
-                sicMachine.step();
-            }
+            sicMachine.run();
         });
         stepItem.addActionListener(e -> {
             //System.out.println("PASSO");

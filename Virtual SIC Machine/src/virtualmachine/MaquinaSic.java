@@ -9,7 +9,7 @@ import virtualmachine.Snapshot;
 public class MaquinaSic implements  Maquina {
     private Registrador[] registradores;
     byte[] memory;
-    private boolean executionEnded = false;
+    private boolean executionEnded = true;
     private static final int ENDERECO_SENTINELA = 0xFFFFFF;
 
     public MaquinaSic() {
@@ -19,10 +19,13 @@ public class MaquinaSic implements  Maquina {
         for (int i = 0; i < registradores.length; ++i) {
             this.registradores[i] = new Registrador();
         }
+        
+        resetar();
     }
     
     @Override
     public void run() {
+        executionEnded = false;
         while (!executionEnded) {
             step();
         }
@@ -30,9 +33,7 @@ public class MaquinaSic implements  Maquina {
     
     @Override
     public void step() {
-        if (executionEnded) {
-            return; // Impede que a máquina rode lixo de memória se já acabou
-        }
+        executionEnded = false;
     
         // Endereço lógico em palavras
         int pcValue = registradores[8].getIntVal(); 
@@ -54,6 +55,10 @@ public class MaquinaSic implements  Maquina {
         // Se a instrução executada foi um RSUB do programa principal, o PC agora terá o sentinela
         if (registradores[8].getIntVal() == ENDERECO_SENTINELA) {
             executionEnded = true;
+        }
+        
+        if (executionEnded) {
+            return; // Impede que a máquina rode lixo de memória se já acabou
         }
     }
     
@@ -100,10 +105,11 @@ public class MaquinaSic implements  Maquina {
             registradores[4].getIntVal(), // S
             registradores[5].getIntVal(), // T
             registradores[6].getIntVal(), // F
-            registradores[8].getIntVal(), // PC
-            registradores[9].getIntVal(), // SW
+            registradores[7].getIntVal(), // PC
+            registradores[8].getIntVal(), // SW
             getConditionCode(),           // Condicional atual extraído do SW
-            executionEnded                // Estado da simulação
+            executionEnded,               // Estado da simulação
+            memory
         );
     }
     
@@ -122,7 +128,7 @@ public class MaquinaSic implements  Maquina {
         registradores[2].setIntVal(ENDERECO_SENTINELA);
         
         // Reinicia a flag de execução
-        executionEnded = false;
+        executionEnded = true;
     }
 
     private void compute(byte[] ins) {
