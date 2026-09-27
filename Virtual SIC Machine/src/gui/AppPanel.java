@@ -2,7 +2,9 @@ package gui;
 
 import VirtualMachine.MaquinaSic;
 import java.awt.BorderLayout;
+import java.io.File;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class AppPanel extends JPanel {
 
@@ -55,7 +57,7 @@ public class AppPanel extends JPanel {
 
         JMenu fileMenu = new JMenu("Arquivo");
         JMenuItem loadFileItem = new JMenuItem("Carregar arquivo");
-        JMenuItem exportFileResultItem = new JMenuItem("Exportar Resultado");
+        JMenuItem exportFileResultItem = new JMenuItem("Exportar resultado");
         fileMenu.add(loadFileItem);
         fileMenu.add(exportFileResultItem);
 
@@ -125,7 +127,13 @@ public class AppPanel extends JPanel {
     }
 
     private void openFile() {
-        JFileChooser fileChooser = new JFileChooser();
+        String userHome = System.getProperty("user.home");
+        File desktop = new File(userHome, "Desktop");
+        
+        JFileChooser fileChooser = new JFileChooser(desktop);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Arquivos de Texto (*.txt)", "txt");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
         int res = fileChooser.showOpenDialog(this);
 
         if (res == JFileChooser.APPROVE_OPTION) {

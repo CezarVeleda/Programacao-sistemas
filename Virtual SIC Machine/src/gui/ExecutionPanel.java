@@ -10,6 +10,7 @@ public class ExecutionPanel extends JPanel {
     private File currentFile = null;
     private Scanner scanner;
     private String fileContent = "";
+    private String executionResult = "";
     
     public ExecutionPanel() {
     }
@@ -42,7 +43,5 @@ public class ExecutionPanel extends JPanel {
         } catch (FileNotFoundException ex) {
             System.getLogger(ExecutionPanel.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
         }
-        
-        System.out.println(fileContent);
     }
 }
