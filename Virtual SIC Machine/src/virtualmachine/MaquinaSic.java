@@ -588,9 +588,45 @@ public class MaquinaSic implements  Maquina {
         }
     }
     
-    private void j(byte[] ins){}
-    private void jgt(byte[] ins){}
-    private void jlt(byte[] ins){}
-    private void jsub(byte[] ins){}
-    private void rsub(byte[] ins){}
+    private void j(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        
+        // J: PC <- m (Salto incondicional)
+        registradores[8].setIntVal(targetAddress);
+    }
+
+    private void jgt(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        
+        // JGT: PC <- m se CC for igual a ">"
+        if (getConditionCode() == Condicional.Maior) {
+            registradores[8].setIntVal(targetAddress);
+        }
+    }
+
+    private void jlt(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        
+        // JLT: PC <- m se CC for igual a "<"
+        if (getConditionCode() == Condicional.Menor) {
+            registradores[8].setIntVal(targetAddress);
+        }
+    }
+
+    private void jsub(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        
+        // JSUB: L <- (PC); PC <- m
+        // Salva o endereço de retorno (conteúdo atual do PC) no registrador L (índice 2)
+        registradores[2].setIntVal(registradores[8].getIntVal());
+        
+        // Realiza o salto para o endereço da subrotina
+        registradores[8].setIntVal(targetAddress);
+    }
+
+    private void rsub(byte[] ins) {
+        // RSUB: PC <- (L)
+        // Retorna da subrotina restaurando no PC o endereço salvo em L (índice 2)
+        registradores[8].setIntVal(registradores[2].getIntVal());
+    }
 }
