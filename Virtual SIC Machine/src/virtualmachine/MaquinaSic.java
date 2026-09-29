@@ -347,15 +347,57 @@ public class MaquinaSic implements  Maquina {
     private void lda(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[0].setIntVal(operand);
+        registradores[0].setIntVal(operand); // Registrador A = 0
     }
     
-    private void ldb(byte[] ins){}
-    private void ldch(byte[] ins){}
-    private void ldl(byte[] ins){}
-    private void lds(byte[] ins){}
-    private void ldt(byte[] ins){}
-    private void ldx(byte[] ins){}
+    private void ldb(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
+        registradores[3].setIntVal(operand); // Registrador B = 3
+    }
+
+    private void ldch(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        int operand;
+        
+        if (isImmediate(ins)) {
+            // Se for imediato, pega apenas o byte mais à direita do valor calculado
+            operand = targetAddress & 0xFF;
+        } else {
+            // A arquitetura alinha por palavra (3 bytes). 
+            // O byte mais à direita da palavra lida fica no índice físico (targetAddress * 3) + 2.
+            operand = memory[targetAddress * 3 + 2] & 0xFF;
+        }
+        
+        // Mantém os 16 bits mais significativos do Acumulador (A) intactos e
+        // substitui apenas os 8 bits menos significativos pelo caractere lido.
+        int valorA = registradores[0].getIntVal();
+        registradores[0].setIntVal((valorA & 0xFFFF00) | operand);
+    }
+
+    private void ldl(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
+        registradores[2].setIntVal(operand); // Registrador L = 2
+    }
+
+    private void lds(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
+        registradores[4].setIntVal(operand); // Registrador S = 4
+    }
+
+    private void ldt(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
+        registradores[5].setIntVal(operand); // Registrador T = 5
+    }
+
+    private void ldx(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
+        registradores[1].setIntVal(operand); // Registrador X = 1
+    }
     
     //Grupo 2: Stores (Armazenamentos F3/4)
     private void sta(byte[] ins) {
