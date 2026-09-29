@@ -1,5 +1,6 @@
 package VirtualMachine;
 
+import java.util.function.IntBinaryOperator;
 import utils.DataUtils;
 import virtualmachine.Condicional;
 import virtualmachine.Maquina;
@@ -454,43 +455,84 @@ public class MaquinaSic implements  Maquina {
     }
     
     //Grupo 4: Operações Puras de Registrador (F2)
+    // Formato 2: o byte ins[1] guarda r1 nos 4 bits altos e r2 nos 4 bits baixos
+
+    private Registrador reg1(byte[] ins) {
+        return registradores[(ins[1] >> 4) & 0x0F];
+    }
+
+    private Registrador reg2(byte[] ins) {
+        return registradores[ins[1] & 0x0F];
+    }
+
+    /**
+     * Aplica r2 <- op((r2), (r1)). Base comum de ADDR, SUBR, MULR e DIVR.
+     */
+    private void operaRegistradores(byte[] ins, IntBinaryOperator op) {
+        reg2(ins).setIntVal(op.applyAsInt(reg2(ins).getIntVal(), reg1(ins).getIntVal()));
+    }
+
+    /**
+     * Atualiza o CC com o resultado de (a : b).
+     * signum(compare) devolve -1, 0 ou 1; somando 1 temos o ordinal de
+     * Menor (0), Igual (1) ou Maior (2).
+     */
+    private void comparaEAtualizaCC(int a, int b) {
+        setConditionCode(Condicional.values()[Integer.signum(Integer.compare(a, b)) + 1]);
+    }
+
     private void addr(byte[] ins) {
-        // Extrai r1 e r2 quebrando o byte ins[1] ao meio
-        int r1 = (ins[1] >> 4) & 0x0F; 
-        int r2 = ins[1] & 0x0F;        
-        
-        int val1 = registradores[r1].getIntVal();
-        int val2 = registradores[r2].getIntVal();
-        
-        // ADDR: r2 <- (r2) + (r1)[cite: 1]
-        registradores[r2].setIntVal(val2 + val1); 
+        operaRegistradores(ins, (v2, v1) -> v2 + v1); // r2 <- (r2) + (r1)
     }
-    
-    private void compr(byte[] ins) {
-        int r1 = (ins[1] >> 4) & 0x0F; 
-        int r2 = ins[1] & 0x0F;        
-    
-        int val1 = registradores[r1].getIntVal();
-        int val2 = registradores[r2].getIntVal();
-    
-        // COMPR: (r1) : (r2)[cite: 1]
-        if (val1 == val2) {
-            setConditionCode(Condicional.Igual);
-        } else if (val1 > val2) {
-            setConditionCode(Condicional.Maior);
-        } else {
-            setConditionCode(Condicional.Menor);
+
+    private void subr(byte[] ins) {
+        operaRegistradores(ins, (v2, v1) -> v2 - v1); // r2 <- (r2) - (r1)
+    }
+
+    private void mulr(byte[] ins) {
+        operaRegistradores(ins, (v2, v1) -> v2 * v1); // r2 <- (r2) * (r1)
+    }
+
+    private void divr(byte[] ins) {
+        if (reg1(ins).getIntVal() == 0) {
+            System.err.println("Erro: Divisão por zero na instrução DIVR.");
+            return;
         }
+        operaRegistradores(ins, (v2, v1) -> v2 / v1); // r2 <- (r2) / (r1)
     }
-    
-    private void subr(byte[] ins){}
-    private void mulr(byte[] ins){}
-    private void divr(byte[] ins){}
-    private void shiftl(byte[] ins){}
-    private void shiftr(byte[] ins){}
-    private void rmo(byte[] ins){}
-    private void clear(byte[] ins){}
-    private void tixr(byte[] ins){}
+
+    private void compr(byte[] ins) {
+        comparaEAtualizaCC(reg1(ins).getIntVal(), reg2(ins).getIntVal()); // (r1) : (r2)
+    }
+
+    private void tixr(byte[] ins) {
+        // X <- (X) + 1; (X) : (r1)
+        // Relê X após gravar para comparar o valor já truncado em 24 bits
+        registradores[1].setIntVal(registradores[1].getIntVal() + 1);
+        comparaEAtualizaCC(registradores[1].getIntVal(), reg1(ins).getIntVal());
+    }
+
+    private void rmo(byte[] ins) {
+        reg2(ins).setIntVal(reg1(ins).getIntVal()); // r2 <- (r1)
+    }
+
+    private void clear(byte[] ins) {
+        reg1(ins).setIntVal(0); // r1 <- 0
+    }
+
+    private void shiftl(byte[] ins) {
+        int n = (ins[1] & 0x0F) + 1; // o montador grava (n - 1) no campo r2
+        int val = reg1(ins).getIntVal() & 0xFFFFFF;
+        // Rotação circular em 24 bits: o que sai pela esquerda entra pela direita.
+        // Os bits acima do 24º são descartados pelo próprio setIntVal.
+        reg1(ins).setIntVal((val << n) | (val >>> (24 - n)));
+    }
+
+    private void shiftr(byte[] ins) {
+        int n = (ins[1] & 0x0F) + 1; // o montador grava (n - 1) no campo r2
+        // getIntVal() já estende o sinal, então '>>' preenche com o bit de sinal
+        reg1(ins).setIntVal(reg1(ins).getIntVal() >> n);
+    }
     
     //Grupo 5: Controle de Fluxo e Subrotinas (F3/4)
     private void jeq(byte[] ins) {
