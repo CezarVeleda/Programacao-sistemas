@@ -106,8 +106,8 @@ public class MaquinaSic implements  Maquina {
             registradores[4].getIntVal(), // S
             registradores[5].getIntVal(), // T
             registradores[6].getIntVal(), // F
-            registradores[7].getIntVal(), // PC
-            registradores[8].getIntVal(), // SW
+            registradores[8].getIntVal(), // PC
+            registradores[9].getIntVal(), // SW
             getConditionCode(),           // Condicional atual extraído do SW
             executionEnded,               // Estado da simulação
             memory
