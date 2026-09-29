@@ -1,4 +1,4 @@
-package VirtualMachine;
+package virtualmachine;
 
 import java.util.function.IntBinaryOperator;
 import utils.DataUtils;
@@ -11,7 +11,8 @@ public class MaquinaSic implements  Maquina {
     private Registrador[] registradores;
     byte[] memory;
     private boolean executionEnded = true;
-    private static final int ENDERECO_SENTINELA = 0xFFFFFF;
+    private static final int ENDERECO_SENTINELA = -1;
+    //private static final int ENDERECO_SENTINELA = 0xFFFFFF;
 
     public MaquinaSic() {
         memory = new byte[4095 * 3];
@@ -26,7 +27,7 @@ public class MaquinaSic implements  Maquina {
     
     @Override
     public void run() {
-        executionEnded = false;
+        //executionEnded = false;
         while (!executionEnded) {
             step();
         }
@@ -34,7 +35,11 @@ public class MaquinaSic implements  Maquina {
     
     @Override
     public void step() {
-        executionEnded = false;
+        //executionEnded = false;
+        
+        if (executionEnded) {
+            return; // Impede que a máquina rode lixo de memória se já acabou
+        }
     
         // Endereço lógico em palavras
         int pcValue = registradores[8].getIntVal(); 
@@ -56,10 +61,6 @@ public class MaquinaSic implements  Maquina {
         // Se a instrução executada foi um RSUB do programa principal, o PC agora terá o sentinela
         if (registradores[8].getIntVal() == ENDERECO_SENTINELA) {
             executionEnded = true;
-        }
-        
-        if (executionEnded) {
-            return; // Impede que a máquina rode lixo de memória se já acabou
         }
     }
     
@@ -129,7 +130,7 @@ public class MaquinaSic implements  Maquina {
         registradores[2].setIntVal(ENDERECO_SENTINELA);
         
         // Reinicia a flag de execução
-        executionEnded = true;
+        executionEnded = false;
     }
 
     private void compute(byte[] ins) {

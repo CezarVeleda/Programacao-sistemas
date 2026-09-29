@@ -1,7 +1,7 @@
 package gui;
 
 import javax.swing.*;
-import VirtualMachine.MaquinaSic;
+import virtualmachine.MaquinaSic;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;

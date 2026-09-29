@@ -1,10 +1,12 @@
 package virtualmachine;
 
+import utils.DataUtils;
+
 public class Snapshot {
     public final int A, X, L, B, S, T, F, PC, SW;
     public final Condicional cc;
     public final boolean executionEnded;
-    public final byte[] memory;
+    public final int[] memory;
 
     public Snapshot(int a, int x, int l, int b, int s, int t, int f, int pc, int sw, Condicional cc, boolean ended, byte[] memory) {
         this.A = a;
@@ -18,6 +20,11 @@ public class Snapshot {
         this.SW = sw;
         this.cc = cc;
         this.executionEnded = ended;
-        this.memory = memory;
+        
+        // Converte os bytes físicos em palavras lógicas de 24 bits
+        this.memory = new int[4095];
+        for (int i = 0; i < 4095; i++) {
+            this.memory[i] = DataUtils.bytes24ToInt(memory, i * 3);
+        }
     }
 }

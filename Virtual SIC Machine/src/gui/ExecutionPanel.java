@@ -126,9 +126,9 @@ public class ExecutionPanel extends JPanel {
             }
         };
 
-        for (int i = 0; i < (4095 * 3); i++) {
+        for (int i = 0; i < 4095; i++) {
             String enderecoHex = String.format("%04X", i);
-            String valorInicial = "00";
+            String valorInicial = "000000";
 
             memoryTableModel.addRow(new Object[]{enderecoHex, valorInicial});
         }
@@ -190,37 +190,31 @@ public class ExecutionPanel extends JPanel {
         };
 
         for (int i = 0; i < RegStrings.length; i++) {
-            String valorHex = String.format("%06X", valoresReg[i]);
+            String valorHex = String.format("%06X", valoresReg[i] & 0xFFFFFF);
             registerTableModel.setValueAt(valorHex, i, 1);
         }
 
         if (snapshot.memory != null) {
-            int totalLinhas = memoryTableModel.getRowCount();
-
             for (int i = 0; i < snapshot.memory.length; i++) {
-                if (i >= totalLinhas) {
-                    String enderecoHex = String.format("%04X", i);
-                    memoryTableModel.addRow(new Object[]{enderecoHex, "00"});
-                }
-
-                String valorByteHex = String.format("%02X", snapshot.memory[i] & 0xFF);
-
-                memoryTableModel.setValueAt(valorByteHex, i, 1);
+                String valorPalavraHex = String.format("%06X", snapshot.memory[i] & 0xFFFFFF);
+                memoryTableModel.setValueAt(valorPalavraHex, i, 1);
             }
         }
     }
 
     private void readFile() {
+        fileContent = ""; // 1. Zera o conteúdo anterior
         try {
             scanner = new Scanner(currentFile);
-
+            
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (!line.equals("")) {
-                    fileContent += line;
+                    // 2. Adiciona a quebra de linha ao concatenar!
+                    fileContent += line + "\n"; 
                 }
             }
-
+            
         } catch (FileNotFoundException ex) {
             System.getLogger(ExecutionPanel.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
         }
