@@ -407,12 +407,40 @@ public class MaquinaSic implements  Maquina {
         writeMemoryWord(targetAddress, valorA); 
     }
     
-    private void stb(byte[] ins){}
-    private void stch(byte[] ins){}
-    private void stl(byte[] ins){}
-    private void sts(byte[] ins){}
-    private void stt(byte[] ins){}
-    private void stx(byte[] ins){}
+    private void stb(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        writeMemoryWord(targetAddress, registradores[3].getIntVal()); // B = 3
+    }
+
+    private void stch(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+
+        // STCH: m <- (A) byte mais a direita
+        // Endereçamento por palavra: o byte mais à direita da palavra fica no
+        // índice físico (targetAddress * 3) + 2 (mesma convenção do LDCH).
+        // Os outros 2 bytes da palavra permanecem intactos.
+        memory[targetAddress * 3 + 2] = (byte) (registradores[0].getIntVal() & 0xFF);
+    }
+
+    private void stl(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        writeMemoryWord(targetAddress, registradores[2].getIntVal()); // L = 2
+    }
+
+    private void sts(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        writeMemoryWord(targetAddress, registradores[4].getIntVal()); // S = 4
+    }
+
+    private void stt(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        writeMemoryWord(targetAddress, registradores[5].getIntVal()); // T = 5
+    }
+
+    private void stx(byte[] ins) {
+        int targetAddress = decodeFlags(ins);
+        writeMemoryWord(targetAddress, registradores[1].getIntVal()); // X = 1
+    }
     
 // --- GRUPO 3: ARITMÉTICA, LÓGICA E TESTES DE MEMÓRIA (F3/4) ---
 
