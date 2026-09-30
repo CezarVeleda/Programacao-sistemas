@@ -153,7 +153,7 @@ public class MaquinaSic implements  Maquina {
             case (byte)0x50, (byte)0x51, (byte)0x52, (byte)0x53 -> ldch(ins);
             case (byte)0x08, (byte)0x09, (byte)0x0A, (byte)0x0B -> ldl(ins);
             case (byte)0x6C, (byte)0x6D, (byte)0x6E, (byte)0x6F -> lds(ins);
-            case (byte)0x64, (byte)0x65, (byte)0x66, (byte)0x67 -> ldt(ins);
+            case (byte)0x74, (byte)0x75, (byte)0x76, (byte)0x77 -> ldt(ins);
             case (byte)0x04, (byte)0x05, (byte)0x06, (byte)0x07 -> ldx(ins);
             case (byte)0x20, (byte)0x21, (byte)0x22, (byte)0x23 -> mul(ins);
             case (byte)0x98 -> mulr(ins);
