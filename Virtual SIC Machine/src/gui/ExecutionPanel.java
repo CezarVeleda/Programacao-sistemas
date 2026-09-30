@@ -21,7 +21,7 @@ public class ExecutionPanel extends JPanel {
     private String[] RegStrings = {"A", "X", "L", "B", "S", "T", "F", "PC", "SW"};
     private DefaultTableModel registerTableModel;
     private DefaultTableModel memoryTableModel;
-    private JLabel runningStatus;
+    private JLabel runningStatus, fileLoadedLabel, codeCompiledLabel, machineReadyLabel;
 
     JPanel execStatusPanel, memoryPanel, registerPanel;
 
@@ -95,12 +95,22 @@ public class ExecutionPanel extends JPanel {
         execStatusPanel.add(titleLabel, gbc);
 
         gbc.gridy = 1;
-        boolean isRunning = false;
-        String c = (isRunning) ? "sim" : "não";
-        runningStatus = new JLabel("Máquina em execução: " + c); 
+        runningStatus = new JLabel(); 
         execStatusPanel.add(runningStatus, gbc);
-
+        
         gbc.gridy = 2;
+        fileLoadedLabel = new JLabel(); 
+        execStatusPanel.add(fileLoadedLabel, gbc);
+        
+        gbc.gridy = 3;
+        codeCompiledLabel = new JLabel();
+        execStatusPanel.add(codeCompiledLabel, gbc);
+        
+        gbc.gridy = 4;
+        machineReadyLabel = new JLabel();
+        execStatusPanel.add(machineReadyLabel, gbc);
+
+        gbc.gridy = 5;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         execStatusPanel.add(new JPanel() {
@@ -177,12 +187,18 @@ public class ExecutionPanel extends JPanel {
         return fileContent;
     }
 
-    public void update(Snapshot snapshot) {
+    public void update(Snapshot snapshot, EUserState currentState) {
 
         boolean isRunning = !snapshot.executionEnded;
-        
-        String c = (isRunning) ? "sim" : "não";
-        runningStatus.setText("Maquina em execução: " + c);
+        String s;
+        s = (currentState == EUserState.MACHINE_RUNNING_STATE) ? "sim" : "não";
+        runningStatus.setText("Usuário executando a máquina: " + s);
+        s = (currentState != EUserState.CLEAN_STATE) ? "sim" : "não";
+        fileLoadedLabel.setText("Arquivo carregado no app: " + s);
+        s = (currentState == EUserState.CODE_COMPILED_STATE || currentState == EUserState.MACHINE_RUNNING_STATE) ? "sim" : "não";
+        codeCompiledLabel.setText("Código compilado na máquina: " + s);
+        s = (currentState == EUserState.CODE_COMPILED_STATE || currentState == EUserState.MACHINE_RUNNING_STATE) ? "sim" : "não";
+        machineReadyLabel.setText("Máquina pronta para execução: " + s);
 
         int[] valoresReg = {
             snapshot.A, snapshot.X, snapshot.L, snapshot.B,

@@ -1,6 +1,6 @@
 package gui;
 
-import VirtualMachine.MaquinaSic;
+import virtualmachine.MaquinaSic;
 import java.awt.BorderLayout;
 import java.io.File;
 import javax.swing.*;
@@ -8,12 +8,18 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class AppPanel extends JPanel {
 
+    EUserState currentState = EUserState.CLEAN_STATE;
     private Thread thread = null;
     private volatile boolean isRunning = false;
     private volatile MaquinaSic sicMachine = null;
     private JMenuBar menuBar;
 
     private ExecutionPanel executionPanel;
+    JMenu fileMenu;
+    JMenu compileMenu;
+    JMenu assemblyMenu;
+    JMenu machineMenu;
+    JMenu exitMenu;
 
     private void start() {
         thread = new Thread(() -> run());
@@ -34,8 +40,9 @@ public class AppPanel extends JPanel {
     private void update() {
         if (sicMachine == null || executionPanel == null) {
             return;
-        } 
-        executionPanel.update(sicMachine.getMachineStateSnapshot());
+        }
+        executionPanel.update(sicMachine.getMachineStateSnapshot(), currentState);
+        updateGuards();
     }
 
     public AppPanel() {
@@ -56,32 +63,32 @@ public class AppPanel extends JPanel {
     private void createMenuBar() {
         menuBar = new JMenuBar();
 
-        JMenu fileMenu = new JMenu("Arquivo");
+        fileMenu = new JMenu("Arquivo");
         JMenuItem loadFileItem = new JMenuItem("Carregar arquivo");
         JMenuItem exportFileResultItem = new JMenuItem("Exportar resultado");
         fileMenu.add(loadFileItem);
         fileMenu.add(exportFileResultItem);
 
-        JMenu compileMenu = new JMenu("Compilar");
+        compileMenu = new JMenu("Compilar");
         JMenuItem compileItem = new JMenuItem("Compilar código de máquina");
 
         compileMenu.add(compileItem);
 
-        JMenu assemblyMenu = new JMenu("Montar");
+        assemblyMenu = new JMenu("Montar");
         JMenuItem AssemblyItem = new JMenuItem("Montar código");
 
         assemblyMenu.add(AssemblyItem);
-        
-        JMenu machineMenu = new JMenu("Maquina");
+
+        machineMenu = new JMenu("Maquina");
         JMenuItem runItem = new JMenuItem("Rodar");
         JMenuItem stepItem = new JMenuItem("Passo");
         JMenuItem resetItem = new JMenuItem("Reiniciar");
-        
+
         machineMenu.add(runItem);
         machineMenu.add(stepItem);
         machineMenu.add(resetItem);
 
-        JMenu exitMenu = new JMenu("Sair");
+        exitMenu = new JMenu("Sair");
         JMenuItem exitItem = new JMenuItem("Sair do programa");
         exitMenu.add(exitItem);
 
@@ -94,13 +101,19 @@ public class AppPanel extends JPanel {
         //######################################################
         //  ACTION LISTENERS
         //######################################################
-        loadFileItem.addActionListener(e -> openFile());
+        loadFileItem.addActionListener(e -> {
+            openFile();
+            if (!executionPanel.getFileContent().equals("")) {
+                currentState = EUserState.FILE_LOADED_STATE;
+            }
+        });
         exportFileResultItem.addActionListener(e -> {
             //System.out.println("EXPORTAR");
         });
 
         compileItem.addActionListener(e -> {
             //System.out.println("COMPILAR");
+            currentState = EUserState.CODE_COMPILED_STATE;
             String code = executionPanel.getFileContent();
             sicMachine.compilar(code, true);
         });
@@ -108,17 +121,20 @@ public class AppPanel extends JPanel {
         AssemblyItem.addActionListener(e -> {
             //System.out.println("MONTAR");
         });
-        
+
         runItem.addActionListener(e -> {
             //System.out.println("RODAR");
+            currentState = EUserState.MACHINE_RUNNING_STATE;
             sicMachine.run();
         });
         stepItem.addActionListener(e -> {
             //System.out.println("PASSO");
+            currentState = EUserState.MACHINE_RUNNING_STATE;
             sicMachine.step();
         });
         resetItem.addActionListener(e -> {
             //System.out.println("REINICIAR");
+            currentState = EUserState.FILE_LOADED_STATE;
             sicMachine.resetar();
         });
 
@@ -128,7 +144,7 @@ public class AppPanel extends JPanel {
     private void openFile() {
         String userHome = System.getProperty("user.home");
         File desktop = new File(userHome, "Desktop");
-        
+
         JFileChooser fileChooser = new JFileChooser(desktop);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Arquivos de Texto (*.txt)", "txt");
         fileChooser.setFileFilter(filter);
@@ -139,8 +155,40 @@ public class AppPanel extends JPanel {
             executionPanel.setCurrentFile(fileChooser.getSelectedFile());
         }
     }
-    
+
+    private void updateGuards() {
+        switch (currentState) {
+            case CLEAN_STATE:
+                fileMenu.setEnabled(true);
+                compileMenu.setEnabled(false);
+                assemblyMenu.setEnabled(false);
+                machineMenu.setEnabled(false);
+                break;
+            case FILE_LOADED_STATE:
+                fileMenu.setEnabled(true);
+                compileMenu.setEnabled(true);
+                assemblyMenu.setEnabled(true);
+                machineMenu.setEnabled(false);
+                break;
+            case CODE_COMPILED_STATE:
+                fileMenu.setEnabled(true);
+                compileMenu.setEnabled(true);
+                assemblyMenu.setEnabled(true);
+                machineMenu.setEnabled(true);
+                break;
+            case MACHINE_RUNNING_STATE:
+                fileMenu.setEnabled(false);
+                compileMenu.setEnabled(false);
+                assemblyMenu.setEnabled(false);
+                machineMenu.setEnabled(true);
+                break;
+            default:
+                throw new AssertionError();
+        }
+    }
+
     public void setSicMachine(MaquinaSic sicMachine) {
         this.sicMachine = sicMachine;
     }
+
 }
