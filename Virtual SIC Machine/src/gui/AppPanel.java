@@ -1,10 +1,10 @@
 package gui;
 
-import virtualmachine.MaquinaSic;
 import java.awt.BorderLayout;
 import java.io.File;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import virtualmachine.MaquinaSic;
 
 public class AppPanel extends JPanel {
 

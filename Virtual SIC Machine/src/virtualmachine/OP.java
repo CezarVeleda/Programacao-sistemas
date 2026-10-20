@@ -1,4 +1,4 @@
-package VirtualMachine;
+package virtualmachine;
 
 //FORA DE USO
 @FunctionalInterface

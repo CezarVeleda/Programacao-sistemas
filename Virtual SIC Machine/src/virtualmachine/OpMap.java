@@ -1,10 +1,8 @@
 package virtualmachine;
 
-//FORA DE USO
-
-import VirtualMachine.OP;
 import java.util.HashMap;
 import utils.DataUtils;
+import virtualmachine.OP;
 
 public class OpMap extends HashMap<Byte, OP>{
 
