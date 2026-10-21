@@ -24,6 +24,12 @@ public class LexicalAnalyzer {
         if (line == null || line.trim().isEmpty() || line.trim().startsWith(".")) {
             return null;
         }
+        
+        // Remove comentários inline ignorando tudo que vem após o ponto '.'
+        int commentIndex = line.indexOf('.');
+        if (commentIndex != -1) {
+            line = line.substring(0, commentIndex);
+        }
 
         // 1. Verifica se a linha tem label ANTES de remover os espaços
         boolean hasLabel = !line.startsWith(" ") && !line.startsWith("\t");

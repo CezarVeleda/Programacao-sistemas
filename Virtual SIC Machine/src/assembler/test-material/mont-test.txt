@@ -1,0 +1,39 @@
+TESTE    START  0
+. 1. TESTE DE MODO IMEDIATO (#) E FORMATO 2
+FIRST    LDA    #10          . Imediato (n=0, i=1). Registrador A = 10
+         LDS    #20          . Registrador S = 20
+         ADDR   S, A         . Formato 2. A = 10 + 20 = 30
+         
+. 2. TESTE DE MODO SIMPLES E PC-RELATIVO (NENHUM PREFIXO)
+         STA    VAR1         . Simples (n=1, i=1), PC-Relativo (p=1). Grava 30 em VAR1
+
+. 3. TESTE DE MODO INDEXADO (, X)
+         LDX    #1           . X = 1 (Avança 1 palavra inteira no endereçamento da sua VM)
+         LDA    ARRAY, X     . Indexado (x=1). Carrega ARRAY[1] em A. A = 55
+
+. 4. TESTE DE MODO INDIRETO (@)
+         LDA    @PTR         . Indireto (n=1, i=0). Carrega o valor apontado por PTR. A = 30
+
+. 5. PREPARAÇÃO E TESTE DE BASE-RELATIVO
+         +LDB   #FARDATA     . Formato 4 (+) imediato. Carrega o endereco real de FARDATA em B
+         BASE   FARDATA      . Diretiva avisando o Montador
+         LDA    FARDATA      . Base-relativo (b=1). O deslocamento > 2047 força o montador a usar a Base. A = 99
+
+. 6. TESTE DE FORMATO 4 EXTENDIDO (+)
+         +J     FIM          . Formato 4 (e=1). Salta ignorando o lixo de memória abaixo
+
+. DECLARACAO DE DADOS PROXIMOS (Alcance do PC-Relativo)
+VAR1     RESW   1
+ARRAY    WORD   44           . Indice 0
+         WORD   55           . Indice 1
+PTR      WORD   VAR1         . Ponteiro guardando o endereco de VAR1
+
+. ENCHIMENTO PARA FORCAR O USO DE BASE-RELATIVO
+         RESB   3000         . Reserva 3000 bytes (1000 palavras). Estoura o limite do PC-Relativo.
+
+. DADOS DISTANTES
+FARDATA  WORD   99
+
+. FIM DA EXECUCAO
+FIM      RSUB                . Volta ao SO / Encerra a execucao na VM
+         END    FIRST
