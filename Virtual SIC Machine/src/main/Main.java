@@ -1,7 +1,7 @@
 package main;
 
-import virtualmachine.MaquinaSic;
 import gui.Window;
+import virtualmachine.MaquinaSic;
 
 public class Main {
 

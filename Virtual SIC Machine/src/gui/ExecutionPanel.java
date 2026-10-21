@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+
 import virtualmachine.Snapshot;
 
 public class ExecutionPanel extends JPanel {
