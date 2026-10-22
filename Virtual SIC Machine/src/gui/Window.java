@@ -1,5 +1,6 @@
 package gui;
 
+import assembler.Montador;
 import javax.swing.*;
 import virtualmachine.MaquinaSic;
 import java.awt.Container;
@@ -16,6 +17,7 @@ public class Window extends JFrame {
     private JPanel upperPanel, lowerPanel, leftPanel, rightPanel;
     private AppPanel appPanel;
     protected MaquinaSic sicMachine;
+    protected Montador assembler;
 
     public Window() {
         initWindow();
@@ -89,4 +91,11 @@ public class Window extends JFrame {
         this.sicMachine = sicMachine;
         appPanel.setSicMachine(sicMachine);
     }
+
+    public void setAssembler(Montador assembler) {
+        this.assembler = assembler;
+        appPanel.setAssembler(assembler);
+    }
+    
+    
 }

@@ -15,7 +15,10 @@ import java.util.Optional;
 public class Symtab {
 
     private final Map<String, SymbolData> table = new LinkedHashMap<>();
-
+    
+    public void reset() {
+        table.clear();
+    }
     /**
      * Defines a new symbol.
      *

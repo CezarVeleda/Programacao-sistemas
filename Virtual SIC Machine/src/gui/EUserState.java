@@ -4,6 +4,7 @@ public enum EUserState {
     CLEAN_STATE,
     FILE_LOADED_STATE,
     CODE_COMPILED_STATE,
+    CODE_ASSEMBLED_STATE,
     MACHINE_RUNNING_STATE,
     ;
 

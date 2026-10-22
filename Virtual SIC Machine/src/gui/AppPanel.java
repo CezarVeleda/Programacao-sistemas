@@ -5,6 +5,7 @@ import java.io.File;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import virtualmachine.MaquinaSic;
+import assembler.Montador;
 
 public class AppPanel extends JPanel {
 
@@ -12,6 +13,7 @@ public class AppPanel extends JPanel {
     private Thread thread = null;
     private volatile boolean isRunning = false;
     private volatile MaquinaSic sicMachine = null;
+    private volatile Montador assembler = null;
     private JMenuBar menuBar;
 
     private ExecutionPanel executionPanel;
@@ -38,7 +40,7 @@ public class AppPanel extends JPanel {
     }
 
     private void update() {
-        if (sicMachine == null || executionPanel == null) {
+        if (sicMachine == null || executionPanel == null || assembler == null) {
             return;
         }
         executionPanel.update(sicMachine.getMachineStateSnapshot(), currentState);
@@ -114,12 +116,15 @@ public class AppPanel extends JPanel {
         compileItem.addActionListener(e -> {
             //System.out.println("COMPILAR");
             currentState = EUserState.CODE_COMPILED_STATE;
-            String code = executionPanel.getFileContent();
+            String code = executionPanel.getCurrentString();
             sicMachine.compilar(code, true);
         });
 
         AssemblyItem.addActionListener(e -> {
             //System.out.println("MONTAR");
+            currentState = EUserState.CODE_ASSEMBLED_STATE;
+            assembler.montar(executionPanel.getFileContent());
+            executionPanel.setCurrentString(assembler.getCodigoObjeto());
         });
 
         runItem.addActionListener(e -> {
@@ -166,14 +171,20 @@ public class AppPanel extends JPanel {
                 break;
             case FILE_LOADED_STATE:
                 fileMenu.setEnabled(true);
-                compileMenu.setEnabled(true);
+                compileMenu.setEnabled(false);
                 assemblyMenu.setEnabled(true);
+                machineMenu.setEnabled(false);
+                break;
+            case CODE_ASSEMBLED_STATE:
+                fileMenu.setEnabled(true);
+                compileMenu.setEnabled(true);
+                assemblyMenu.setEnabled(false);
                 machineMenu.setEnabled(false);
                 break;
             case CODE_COMPILED_STATE:
                 fileMenu.setEnabled(true);
-                compileMenu.setEnabled(true);
-                assemblyMenu.setEnabled(true);
+                compileMenu.setEnabled(false);
+                assemblyMenu.setEnabled(false);
                 machineMenu.setEnabled(true);
                 break;
             case MACHINE_RUNNING_STATE:
@@ -189,6 +200,10 @@ public class AppPanel extends JPanel {
 
     public void setSicMachine(MaquinaSic sicMachine) {
         this.sicMachine = sicMachine;
+    }
+
+    public void setAssembler(Montador assembler) {
+        this.assembler = assembler;
     }
 
 }

@@ -18,6 +18,7 @@ public class ExecutionPanel extends JPanel {
     private File currentFile = null;
     private Scanner scanner;
     private String fileContent = "";
+    private String currentString = "";
     private String executionResult = "";
     private String[] RegStrings = {"A", "X", "L", "B", "S", "T", "F", "PC", "SW"};
     private DefaultTableModel registerTableModel;
@@ -220,14 +221,13 @@ public class ExecutionPanel extends JPanel {
     }
 
     private void readFile() {
-        fileContent = ""; // 1. Zera o conteúdo anterior
+        fileContent = "";
         try {
             scanner = new Scanner(currentFile);
             
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (!line.equals("")) {
-                    // 2. Adiciona a quebra de linha ao concatenar!
                     fileContent += line + "\n"; 
                 }
             }
@@ -235,5 +235,16 @@ public class ExecutionPanel extends JPanel {
         } catch (FileNotFoundException ex) {
             System.getLogger(ExecutionPanel.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
         }
+        currentString = fileContent;
     }
+
+    public String getCurrentString() {
+        return currentString;
+    }
+
+    public void setCurrentString(String currentString) {
+        this.currentString = currentString;
+    }
+    
+    
 }
