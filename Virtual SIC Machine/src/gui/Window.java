@@ -1,6 +1,7 @@
 package gui;
 
 import assembler.Montador;
+import java.awt.Color;
 import javax.swing.*;
 import virtualmachine.MaquinaSic;
 import java.awt.Container;
@@ -30,11 +31,11 @@ public class Window extends JFrame {
         setPreferredSize(d);
         setMinimumSize(d);
         setMaximumSize(d);
+        //setExtendedState(JFrame.MAXIMIZED_BOTH);
         
         // ######################################################
         Container contentPane = getContentPane();
         contentPane.setLayout(new GridBagLayout());
-        contentPane.setBackground(Palette.getBACKGROUNDColor()); 
         // ######################################################
         
         pack();
@@ -45,16 +46,12 @@ public class Window extends JFrame {
     }
 
     private void initPanels() {
-        appPanel = new AppPanel();
+        appPanel = new AppPanel(this);
         
         upperPanel = new JPanel();
-        upperPanel.setBackground(Palette.getBACKGROUNDColor());
         lowerPanel = new JPanel();
-        lowerPanel.setBackground(Palette.getBACKGROUNDColor());
         leftPanel = new JPanel();
-        leftPanel.setBackground(Palette.getBACKGROUNDColor());
         rightPanel = new JPanel();
-        rightPanel.setBackground(Palette.getBACKGROUNDColor());
         
         
         final double spacing = 0.1;
@@ -97,5 +94,12 @@ public class Window extends JFrame {
         appPanel.setAssembler(assembler);
     }
     
+    protected void setBackgroundColor(Color color) {
+        getContentPane().setBackground(color);
+        lowerPanel.setBackground(color);
+        upperPanel.setBackground(color);
+        leftPanel.setBackground(color);
+        rightPanel.setBackground(color);
+    }
     
 }

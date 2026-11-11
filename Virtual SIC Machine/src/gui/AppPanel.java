@@ -16,12 +16,9 @@ public class AppPanel extends JPanel {
     private volatile Montador assembler = null;
     private JMenuBar menuBar;
 
+    private Window window;
     private ExecutionPanel executionPanel;
-    JMenu fileMenu;
-    JMenu compileMenu;
-    JMenu assemblyMenu;
-    JMenu machineMenu;
-    JMenu exitMenu;
+    JMenu fileMenu, compileMenu, assemblyMenu, machineMenu, optionsMenu, themesMenu, exitMenu;
 
     private void start() {
         thread = new Thread(() -> run());
@@ -34,8 +31,25 @@ public class AppPanel extends JPanel {
     }
 
     private void run() {
+        final double TARGET_FPS = 10;
+        final long OPTIMAL_TIME = 1000000000L / (long) TARGET_FPS;
+
         while (isRunning) {
+            long startTime = System.nanoTime();
+
             update();
+
+            long updateTime = System.nanoTime() - startTime;
+            long sleepTime = (OPTIMAL_TIME - updateTime) / 1000000L;
+
+            if (sleepTime > 0) {
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
     }
 
@@ -45,15 +59,16 @@ public class AppPanel extends JPanel {
         }
         executionPanel.update(sicMachine.getMachineStateSnapshot(), currentState);
         updateGuards();
+        updateThemeColors();
     }
 
-    public AppPanel() {
+    public AppPanel(Window window) {
+        this.window = window;
         init();
         start();
     }
 
     private void init() {
-        setBackground(Palette.getBACKGROUNDColor());
         setLayout(new BorderLayout());
         createMenuBar();
         add(menuBar, BorderLayout.NORTH);
@@ -90,6 +105,25 @@ public class AppPanel extends JPanel {
         machineMenu.add(stepItem);
         machineMenu.add(resetItem);
 
+        optionsMenu = new JMenu("Opções");
+        themesMenu = new JMenu("Temas");
+        JMenuItem themeOriginalItem = new JMenuItem("Original");
+        JMenuItem themeOriginalPlusItem = new JMenuItem("Original Plus (Padrão)");
+        JMenuItem themeAsiaItem = new JMenuItem("Ásia");
+        JMenuItem themeHotdogItem = new JMenuItem("Cachorro Quente");
+        JMenuItem themeTanItem = new JMenuItem("Bronzeado");
+        JMenuItem themeConstantinopleItem = new JMenuItem("Contantinopla");
+        JMenuItem themeNightItem = new JMenuItem("Noite");
+
+        optionsMenu.add(themesMenu);
+        themesMenu.add(themeOriginalItem);
+        themesMenu.add(themeOriginalPlusItem);
+        themesMenu.add(themeAsiaItem);
+        themesMenu.add(themeHotdogItem);
+        themesMenu.add(themeTanItem);
+        themesMenu.add(themeConstantinopleItem);
+        themesMenu.add(themeNightItem);
+
         exitMenu = new JMenu("Sair");
         JMenuItem exitItem = new JMenuItem("Sair do programa");
         exitMenu.add(exitItem);
@@ -98,6 +132,7 @@ public class AppPanel extends JPanel {
         menuBar.add(compileMenu);
         menuBar.add(assemblyMenu);
         menuBar.add(machineMenu);
+        menuBar.add(optionsMenu);
         menuBar.add(exitMenu);
 
         //######################################################
@@ -143,6 +178,41 @@ public class AppPanel extends JPanel {
             sicMachine.resetar();
         });
 
+        themeOriginalItem.addActionListener(e -> {
+            Palette.setCurrentePalette("original");
+            executionPanel.setDarkLabelsColor(false);
+        });
+
+        themeOriginalPlusItem.addActionListener(e -> {
+            Palette.setCurrentePalette("originalPlus");
+            executionPanel.setDarkLabelsColor(false);
+        });
+
+        themeAsiaItem.addActionListener(e -> {
+            Palette.setCurrentePalette("asia");
+            executionPanel.setDarkLabelsColor(false);
+        });
+
+        themeHotdogItem.addActionListener(e -> {
+            Palette.setCurrentePalette("hotdog");
+            executionPanel.setDarkLabelsColor(false);
+        });
+
+        themeTanItem.addActionListener(e -> {
+            Palette.setCurrentePalette("tan");
+            executionPanel.setDarkLabelsColor(false);
+        });
+
+        themeConstantinopleItem.addActionListener(e -> {
+            Palette.setCurrentePalette("constantinople");
+            executionPanel.setDarkLabelsColor(false);
+        });
+
+        themeNightItem.addActionListener(e -> {
+            Palette.setCurrentePalette("night");
+            executionPanel.setDarkLabelsColor(true);
+        });
+
         exitItem.addActionListener(e -> System.exit(0));
     }
 
@@ -168,30 +238,35 @@ public class AppPanel extends JPanel {
                 compileMenu.setEnabled(false);
                 assemblyMenu.setEnabled(false);
                 machineMenu.setEnabled(false);
+                optionsMenu.setEnabled(true);
                 break;
             case FILE_LOADED_STATE:
                 fileMenu.setEnabled(true);
                 compileMenu.setEnabled(false);
                 assemblyMenu.setEnabled(true);
                 machineMenu.setEnabled(false);
+                optionsMenu.setEnabled(true);
                 break;
             case CODE_ASSEMBLED_STATE:
                 fileMenu.setEnabled(true);
                 compileMenu.setEnabled(true);
                 assemblyMenu.setEnabled(false);
                 machineMenu.setEnabled(false);
+                optionsMenu.setEnabled(true);
                 break;
             case CODE_COMPILED_STATE:
                 fileMenu.setEnabled(true);
                 compileMenu.setEnabled(false);
                 assemblyMenu.setEnabled(false);
                 machineMenu.setEnabled(true);
+                optionsMenu.setEnabled(true);
                 break;
             case MACHINE_RUNNING_STATE:
                 fileMenu.setEnabled(false);
                 compileMenu.setEnabled(false);
                 assemblyMenu.setEnabled(false);
                 machineMenu.setEnabled(true);
+                optionsMenu.setEnabled(false);
                 break;
             default:
                 throw new AssertionError();
@@ -204,6 +279,15 @@ public class AppPanel extends JPanel {
 
     public void setAssembler(Montador assembler) {
         this.assembler = assembler;
+    }
+
+    private void updateThemeColors() {
+        String currentPalette = Palette.getCurrentePalette();
+        window.setBackgroundColor(Palette.BACKGROUND.getColor(currentPalette));
+        this.setBackground(Palette.BACKGROUND.getColor(currentPalette));
+        executionPanel.setPrimaryPanelsBackground(Palette.PRIMARY.getColor(currentPalette));
+        executionPanel.setSecondaryPanelsBackground(Palette.SECONDARY.getColor(currentPalette));
+        executionPanel.setTablesBackground(Palette.PRIMARY.getColor(currentPalette));
     }
 
 }
