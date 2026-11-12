@@ -1,6 +1,7 @@
 package macroprocessor;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -8,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+
+import assembler.ParsedLine;
 
 public class MacroProcessor {
 
@@ -102,5 +105,78 @@ public class MacroProcessor {
             result = result.replace(param, paramMap.get(param));
         }
         return result;
+    }
+
+    /**
+     * Multiplexador de leitura: resolve a origem da próxima linha.
+     * Mascara a complexidade da expansão para o método process().
+     */
+    private ParsedLine getLine(BufferedReader input) throws IOException {
+        // 1. Se expanding == true (Modo de Expansão)
+        if (this.expanding) {
+            int currentPointer = defTabPointers.pop();
+            String rawDefLine = defTab.getLine(currentPointer);
+
+            defTabPointers.push(currentPointer + 1);
+
+            String substitutedLine = argTab.substitute(rawDefLine);
+
+            ParsedLine parsedSubLine = new ParsedLine(substitutedLine);
+
+            // Condição de Parada
+            if ("MEND".equalsIgnoreCase(parsedSubLine.getOpcode())) {
+                defTabPointers.pop(); 
+                argTab.popContext();  
+                
+                if (defTabPointers.isEmpty()) {
+                    this.expanding = false; // Altera expanding para false se a pilha ficar vazia
+                }
+            }
+
+            // Retorna a linha processada
+            return parsedSubLine;
+        }
+
+        // 2. Se expanding == false (Modo de Cópia / Leitura Direta)
+        String rawInputLine = input.readLine();
+        if (rawInputLine == null) {
+            return null; // Fim do arquivo
+        }
+
+        // Converte e retorna como ParsedLine
+        return new ParsedLine(rawInputLine);
+    }
+
+    /**
+     * Laço principal do programa (Motor).
+     * Opera no "Modo Normal" (Modo de Cópia) por padrão.
+     */
+    public void process(BufferedReader input, java.io.BufferedWriter output) throws IOException {
+        ParsedLine currentLine;
+
+        // Enquanto a linha retornada por getLine(input) não for nula
+        while ((currentLine = getLine(input)) != null) {
+            String opcode = currentLine.getOpcode();
+
+            // Ignora processamento profundo se for apenas comentário ou linha vazia
+            if (opcode == null) {
+                 output.write(currentLine.reconstructLine());
+                 output.newLine();
+                 continue;
+            }
+
+            if ("MACRO".equalsIgnoreCase(opcode)) {
+                define(input, currentLine);
+            } 
+            
+            else if (namTab.contains(opcode)) {
+                expand(currentLine);
+            } 
+            
+            else {
+                output.write(currentLine.reconstructLine());
+                output.newLine(); // Garante a quebra de linha no arquivo de destino
+            }
+        }
     }
 }
