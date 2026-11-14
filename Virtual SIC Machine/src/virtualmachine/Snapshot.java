@@ -24,7 +24,8 @@ public class Snapshot {
         // Converte os bytes físicos em palavras lógicas de 24 bits
         this.memory = new int[4095];
         for (int i = 0; i < 4095; i++) {
-            this.memory[i] = DataUtils.bytes24ToInt(memory, i * 3);
+            // CORREÇÃO: Usando o novo método com suporte a offset diretamente
+            this.memory[i] = DataUtils.bytes24ToIntUnsigned(memory, i * 3);
         }
     }
 }

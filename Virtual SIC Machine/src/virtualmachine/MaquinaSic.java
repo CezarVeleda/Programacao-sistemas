@@ -12,7 +12,6 @@ public class MaquinaSic implements  Maquina {
     byte[] memory;
     private boolean executionEnded = true;
     private static final int ENDERECO_SENTINELA = -1;
-    //private static final int ENDERECO_SENTINELA = 0xFFFFFF;
 
     public MaquinaSic() {
         memory = new byte[4095 * 3];
@@ -27,7 +26,6 @@ public class MaquinaSic implements  Maquina {
     
     @Override
     public void run() {
-        //executionEnded = false;
         while (!executionEnded) {
             step();
         }
@@ -35,33 +33,28 @@ public class MaquinaSic implements  Maquina {
     
     @Override
     public void step() {
-        //executionEnded = false;
-        
-        if (executionEnded) {
-            return; // Impede que a máquina rode lixo de memória se já acabou
+        if (executionEnded) return;
+    
+        int pcValue = registradores[8].getIntVal(); 
+    
+        // CHECAGEM DE FIM DE PROGRAMA E LIMITES
+        if (pcValue == ENDERECO_SENTINELA) {
+            executionEnded = true;
+            return;
+        }
+        if (pcValue < 0 || pcValue >= 4095) {
+            System.err.println("Erro: PC fora dos limites da memória (" + pcValue + ").");
+            executionEnded = true;
+            return;
         }
     
-        // Endereço lógico em palavras
-        int pcValue = registradores[8].getIntVal(); 
-        
-        // CONVERSÃO: Multiplica por 3 para achar a posição real no vetor de bytes
         int byteOffset = pcValue * 3; 
-        
-        byte[] instruction = new byte[3];
-        instruction[0] = memory[byteOffset];
-        instruction[1] = memory[byteOffset + 1];
-        instruction[2] = memory[byteOffset + 2];
+        byte[] instruction = DataUtils.readBytes(memory, byteOffset, 3);
         
         // Como o endereçamento é por palavra, o PC avança apenas 1 unidade por padrão
         registradores[8].setIntVal(pcValue + 1); 
     
         compute(instruction);
-        
-        // CHECAGEM DE FIM DE PROGRAMA:
-        // Se a instrução executada foi um RSUB do programa principal, o PC agora terá o sentinela
-        if (registradores[8].getIntVal() == ENDERECO_SENTINELA) {
-            executionEnded = true;
-        }
     }
     
     @Override
@@ -117,19 +110,14 @@ public class MaquinaSic implements  Maquina {
     
     @Override
     public void resetar() {
-        // Zera todos os registradores
         for (Registrador r : registradores) {
             r.setIntVal(0);
         }
         
-        // Zera a memória física
         java.util.Arrays.fill(memory, (byte) 0);
         
-        // PREPARAÇÃO PARA O FIM DO PROGRAMA: 
-        // Coloca o endereço sentinela no Registrador L (índice 2)
+        // PREPARAÇÃO PARA O FIM DO PROGRAMA
         registradores[2].setIntVal(ENDERECO_SENTINELA);
-        
-        // Reinicia a flag de execução
         executionEnded = false;
     }
 
@@ -178,183 +166,123 @@ public class MaquinaSic implements  Maquina {
     
     // --- MÉTODOS AUXILIARES ---
 
-    /**
-     * Verifica se a instrução atual utiliza endereçamento imediato.
-     * Endereçamento imediato ocorre quando a flag 'i' é 1 e a flag 'n' é 0.
-     * 
-     * @param ins O array de bytes contendo a instrução atual.
-     * @return true se for endereçamento imediato, false caso contrário.
-     */
     private boolean isImmediate(byte[] ins) {
-        // bit i = 1 (0x01) e bit n = 0 (0x02)[cite: 1]
         return (ins[0] & 0x01) != 0 && (ins[0] & 0x02) == 0;
     }
 
-    /**
-     * Escreve um valor inteiro (24 bits) em um endereço lógico da memória.
-     * Este método abstrai a conversão de inteiro para bytes e o 
-     * alinhamento físico (multiplicação por 3) exigido pelo endereçamento por palavra.
-     * 
-     * @param targetAddress O endereço lógico de destino.
-     * @param value O valor inteiro a ser armazenado.
-     */
     private void writeMemoryWord(int targetAddress, int value) {
-        // Converte o inteiro para um array de 3 bytes usando o utilitário
-        byte[] bytes = DataUtils.intToBytes24(value);
-        
-        // Multiplica o endereço lógico por 3 para encontrar a posição física
-        int physicalAddress = targetAddress * 3;
-        
-        // Grava os 3 bytes na memória sequencialmente
-        memory[physicalAddress] = bytes[0];
-        memory[physicalAddress + 1] = bytes[1];
-        memory[physicalAddress + 2] = bytes[2];
+        // Agora delega completamente para o DataUtils gravar direto na array original
+        DataUtils.writeInt24ToMemory(value, memory, targetAddress * 3);
     }
     
-    /**
-     * Lê um valor inteiro (24 bits) de um endereço lógico da memória.
-     */
     private int readMemoryWord(int targetAddress) {
-        return DataUtils.bytes24ToInt(memory, targetAddress * 3);
+        // Utiliza versão Signed (numérica) para matemática padrão
+        return DataUtils.bytes24ToIntSigned(memory, targetAddress * 3);
     }
     
     private void setConditionCode(Condicional cond) {
-        // 1. Lê o valor atual do Registrador SW (índice 9)
         int swValue = registradores[9].getIntVal();
-        
-        // 2. Cria uma máscara para ZERAR apenas os 2 últimos bits (0x03)
-        // O operador bitwise '~' inverte os bits. Então ~0x03 é 0xFFFFFC.
         swValue = swValue & (~0x03); 
-        
-        // 3. Aplica o novo estado do CC usando o método ordinal() do Enum
-        // Menor = 0 (00), Igual = 1 (01), Maior = 2 (10)
         swValue = swValue | cond.ordinal(); 
-        
-        // 4. Salva de volta no Registrador 9
         registradores[9].setIntVal(swValue);
     }
     
     private Condicional getConditionCode() {
         int swValue = registradores[9].getIntVal();
-        
-        // Extrai apenas os 2 últimos bits do registrador
         int ccValor = swValue & 0x03;
-        
-        // Converte o inteiro de volta para o Enum
         return Condicional.values()[ccValor];
     }
     
     private int decodeFlags(byte[] ins) {
-        // 1. Isola os 6 bits (n, i, x, b, p, e) num único valor entre 0 e 63
-        // O '& 0x03' pega os 2 últimos bits do opcode. O '& 0x0F' evita vazamento de sinal no byte.
-        int flags = ((ins[0] & 0x03) << 4) | ((ins[1] >> 4) & 0x0F);
+        boolean n = (ins[0] & 0x02) != 0;
+        boolean i = (ins[0] & 0x01) != 0;
         
-        // 2. Validação estrita baseada na tabela de modos de endereçamento
-        boolean isValid = switch (flags) {
-            // Instruções do SIC Padrão (n=0, i=0)
-            case 0b000000, 0b001000 -> true;
-                
-            // Modo Imediato (n=0, i=1)
-            case 0b010000, 0b010001, 0b010010, 0b010100 -> true;
-                
-            // Modo Indireto (n=1, i=0)
-            case 0b100000, 0b100001, 0b100010, 0b100100 -> true;
-                
-            // Modo Direto/Simples SIC/XE (n=1, i=1)
-            case 0b110000, 0b110001, 0b110010, 0b110100, 
-                 0b111000, 0b111001, 0b111010, 0b111100 -> true;
-             
-            // Qualquer outra combinação é um erro arquitetural
-            default -> false;
-        };
+        boolean x, b, p, e;
         
-        if (!isValid) {
-            throw new IllegalArgumentException(
-                String.format("Combinação de flags inválida: %5s", Integer.toBinaryString(flags)).replace(' ', '0')
-            );
+        // Se for SIC Padrão (n=0 e i=0), NÃO há flags b, p, e. 
+        // Os bits pertencem ao endereço de 15 bits, então forçamos falso e pulamos o switch.
+        if (!n && !i) {
+            x = (ins[1] & 0x80) != 0;
+            b = false;
+            p = false;
+            e = false;
+        } else {
+            int flags = ((ins[0] & 0x03) << 4) | ((ins[1] >> 4) & 0x0F);
+            
+            boolean isValid = switch (flags) {
+                case 0b000000, 0b001000 -> true;
+                case 0b010000, 0b010001, 0b010010, 0b010100 -> true;
+                case 0b100000, 0b100001, 0b100010, 0b100100 -> true;
+                case 0b110000, 0b110001, 0b110010, 0b110100, 
+                     0b111000, 0b111001, 0b111010, 0b111100 -> true;
+                default -> false;
+            };
+            
+            if (!isValid) {
+                throw new IllegalArgumentException(
+                    String.format("Combinação de flags inválida: %5s", Integer.toBinaryString(flags)).replace(' ', '0')
+                );
+            }
+            
+            x = (flags & 0b001000) != 0;
+            b = (flags & 0b000100) != 0;
+            p = (flags & 0b000010) != 0;
+            e = (flags & 0b000001) != 0;
         }
-        
-        // 3. Extração das flags individuais para facilitar a lógica
-        boolean n = (flags & 0b100000) != 0;
-        boolean i = (flags & 0b010000) != 0;
-        boolean x = (flags & 0b001000) != 0;
-        boolean b = (flags & 0b000100) != 0;
-        boolean p = (flags & 0b000010) != 0;
-        boolean e = (flags & 0b000001) != 0;
-        
-        // 3.5. Montagem inicial do disp
-        // Parênteses garantem a máscara correta antes de deslocar 8 bits
+    
         int disp = ((ins[1] & 0x0F) << 8) | (ins[2] & 0xFF);
 
-        // Se for formato 4 (e=1)
         if (e) {
-            // Lê o 4º byte usando o PC que já aponta para ele
             byte format4Byte = memory[registradores[8].getIntVal() * 3];
-    
-            // Desloca os 12 bits atuais para a esquerda em 8 posições e funde o último byte
             disp = (disp << 8) | (format4Byte & 0xFF);
-    
-            // INCREMENTO OBRIGATÓRIO: A instrução consumiu 2 palavras, o PC precisa refletir isso
             registradores[8].setIntVal(registradores[8].getIntVal() + 1);
         }
 
         int targetAddress = 0;
         
-        // 4. Extração do Endereço / Deslocamento inicial
         if (!n && !i) {
-            // SIC Padrão: Usa os últimos 15 bits como endereço absoluto
             targetAddress = ((ins[1] & 0x7F) << 8) | (ins[2] & 0xFF);
         } else {
-            // Formato 3 SIC/XE: Deslocamento (disp) de 12 bits
-            //int disp = ((ins[1] & 0x0F) << 8) | (ins[2] & 0xFF);
+            // Verifica se é imediato puro (i=1, n=0) sem base e sem PC
+            boolean isNegativeImmediate = (i && !n && !p && !b); 
             
-            // Extensão de sinal para endereçamento relativo ao PC (complemento de 2)
-            if (p && (disp & 0x800) != 0) {
+            // Extensão de sinal para PC Relativo ou Imediato Negativo (somente se não for Formato 4)
+            if (!e && (p || isNegativeImmediate) && (disp & 0x800) != 0) {
                 disp |= 0xFFFFF000;
             }
             targetAddress = disp;
         }
 
-        // 5. Adição de Base ou PC
         if (p) {
-            targetAddress += registradores[8].getIntVal(); // PC
+            targetAddress += registradores[8].getIntVal(); 
         } else if (b) {
-            targetAddress += registradores[3].getIntVal(); // Base
+            targetAddress += registradores[3].getIntVal(); 
         }
         
-        // 6. Endereçamento Indexado
         if (x) {
-            targetAddress += registradores[1].getIntVal(); // X
+            targetAddress += registradores[1].getIntVal(); 
         }
         
         // 7. Resolução de Ponteiro Indireto
         if (n && !i) {
-            // Multiplica o targetAddress por 3 para achar os bytes na memória!
-            int memOffset = targetAddress * 3;
-        
-            byte[] addrBytes = {
-                memory[memOffset], 
-                memory[memOffset + 1], 
-                memory[memOffset + 2]
-            };
-            
-            targetAddress = DataUtils.bytes24ToInt(addrBytes);
+            // REFATORADO: Usa conversão Crua (Unsigned) porque endereços não recebem extensão de sinal
+            targetAddress = DataUtils.bytes24ToIntUnsigned(memory, targetAddress * 3);
         }
         
         return targetAddress;
     }
     
-    //Grupo 1: Loads (Cargas de Memória F3/4)
+    // --- GRUPO 1: Loads (Cargas de Memória F3/4) ---
     private void lda(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[0].setIntVal(operand); // Registrador A = 0
+        registradores[0].setIntVal(operand);
     }
     
     private void ldb(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[3].setIntVal(operand); // Registrador B = 3
+        registradores[3].setIntVal(operand);
     }
 
     private void ldch(byte[] ins) {
@@ -362,16 +290,11 @@ public class MaquinaSic implements  Maquina {
         int operand;
         
         if (isImmediate(ins)) {
-            // Se for imediato, pega apenas o byte mais à direita do valor calculado
             operand = targetAddress & 0xFF;
         } else {
-            // A arquitetura alinha por palavra (3 bytes). 
-            // O byte mais à direita da palavra lida fica no índice físico (targetAddress * 3) + 2.
             operand = memory[targetAddress * 3 + 2] & 0xFF;
         }
         
-        // Mantém os 16 bits mais significativos do Acumulador (A) intactos e
-        // substitui apenas os 8 bits menos significativos pelo caractere lido.
         int valorA = registradores[0].getIntVal();
         registradores[0].setIntVal((valorA & 0xFFFF00) | operand);
     }
@@ -379,28 +302,28 @@ public class MaquinaSic implements  Maquina {
     private void ldl(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[2].setIntVal(operand); // Registrador L = 2
+        registradores[2].setIntVal(operand);
     }
 
     private void lds(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[4].setIntVal(operand); // Registrador S = 4
+        registradores[4].setIntVal(operand);
     }
 
     private void ldt(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[5].setIntVal(operand); // Registrador T = 5
+        registradores[5].setIntVal(operand);
     }
 
     private void ldx(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         int operand = isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
-        registradores[1].setIntVal(operand); // Registrador X = 1
+        registradores[1].setIntVal(operand);
     }
     
-    //Grupo 2: Stores (Armazenamentos F3/4)
+    // --- GRUPO 2: Stores (Armazenamentos F3/4) ---
     private void sta(byte[] ins) {
         int targetAddress = decodeFlags(ins); 
         int valorA = registradores[0].getIntVal();
@@ -409,47 +332,35 @@ public class MaquinaSic implements  Maquina {
     
     private void stb(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        writeMemoryWord(targetAddress, registradores[3].getIntVal()); // B = 3
+        writeMemoryWord(targetAddress, registradores[3].getIntVal());
     }
 
     private void stch(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-
-        // STCH: m <- (A) byte mais a direita
-        // Endereçamento por palavra: o byte mais à direita da palavra fica no
-        // índice físico (targetAddress * 3) + 2 (mesma convenção do LDCH).
-        // Os outros 2 bytes da palavra permanecem intactos.
         memory[targetAddress * 3 + 2] = (byte) (registradores[0].getIntVal() & 0xFF);
     }
 
     private void stl(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        writeMemoryWord(targetAddress, registradores[2].getIntVal()); // L = 2
+        writeMemoryWord(targetAddress, registradores[2].getIntVal());
     }
 
     private void sts(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        writeMemoryWord(targetAddress, registradores[4].getIntVal()); // S = 4
+        writeMemoryWord(targetAddress, registradores[4].getIntVal());
     }
 
     private void stt(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        writeMemoryWord(targetAddress, registradores[5].getIntVal()); // T = 5
+        writeMemoryWord(targetAddress, registradores[5].getIntVal());
     }
 
     private void stx(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        writeMemoryWord(targetAddress, registradores[1].getIntVal()); // X = 1
+        writeMemoryWord(targetAddress, registradores[1].getIntVal());
     }
     
-// --- GRUPO 3: ARITMÉTICA, LÓGICA E TESTES DE MEMÓRIA (F3/4) ---
-
-    /**
-     * Método auxiliar para extrair o valor do operando.
-     * Se for imediato (#), o endereço calculado em decodeFlags já é o próprio valor.
-     * Caso contrário, faz a leitura de uma palavra (24 bits) da memória.
-     */
-    
+    // --- GRUPO 3: Aritmética, Lógica e Testes de Memória ---
     private int getOperandValue(byte[] ins) {
         int targetAddress = decodeFlags(ins);
         return isImmediate(ins) ? targetAddress : readMemoryWord(targetAddress);
@@ -510,12 +421,9 @@ public class MaquinaSic implements  Maquina {
 
     private void tix(byte[] ins) {
         int operand = getOperandValue(ins);
-
-        // Incrementa o Registrador X (índice 1) em 1 unidade
         int valorX = registradores[1].getIntVal() + 1;
         registradores[1].setIntVal(valorX);
 
-        // Compara o novo valor de X com o operando e atualiza o Condition Code
         if (valorX == operand) {
             setConditionCode(Condicional.Igual);
         } else if (valorX > operand) {
@@ -525,9 +433,7 @@ public class MaquinaSic implements  Maquina {
         }
     }
     
-    //Grupo 4: Operações Puras de Registrador (F2)
-    // Formato 2: o byte ins[1] guarda r1 nos 4 bits altos e r2 nos 4 bits baixos
-
+    // --- GRUPO 4: Operações Puras de Registrador (F2) ---
     private Registrador reg1(byte[] ins) {
         return registradores[(ins[1] >> 4) & 0x0F];
     }
@@ -536,32 +442,24 @@ public class MaquinaSic implements  Maquina {
         return registradores[ins[1] & 0x0F];
     }
 
-    /**
-     * Aplica r2 <- op((r2), (r1)). Base comum de ADDR, SUBR, MULR e DIVR.
-     */
     private void operaRegistradores(byte[] ins, IntBinaryOperator op) {
         reg2(ins).setIntVal(op.applyAsInt(reg2(ins).getIntVal(), reg1(ins).getIntVal()));
     }
 
-    /**
-     * Atualiza o CC com o resultado de (a : b).
-     * signum(compare) devolve -1, 0 ou 1; somando 1 temos o ordinal de
-     * Menor (0), Igual (1) ou Maior (2).
-     */
     private void comparaEAtualizaCC(int a, int b) {
         setConditionCode(Condicional.values()[Integer.signum(Integer.compare(a, b)) + 1]);
     }
 
     private void addr(byte[] ins) {
-        operaRegistradores(ins, (v2, v1) -> v2 + v1); // r2 <- (r2) + (r1)
+        operaRegistradores(ins, (v2, v1) -> v2 + v1);
     }
 
     private void subr(byte[] ins) {
-        operaRegistradores(ins, (v2, v1) -> v2 - v1); // r2 <- (r2) - (r1)
+        operaRegistradores(ins, (v2, v1) -> v2 - v1);
     }
 
     private void mulr(byte[] ins) {
-        operaRegistradores(ins, (v2, v1) -> v2 * v1); // r2 <- (r2) * (r1)
+        operaRegistradores(ins, (v2, v1) -> v2 * v1);
     }
 
     private void divr(byte[] ins) {
@@ -569,64 +467,52 @@ public class MaquinaSic implements  Maquina {
             System.err.println("Erro: Divisão por zero na instrução DIVR.");
             return;
         }
-        operaRegistradores(ins, (v2, v1) -> v2 / v1); // r2 <- (r2) / (r1)
+        operaRegistradores(ins, (v2, v1) -> v2 / v1);
     }
 
     private void compr(byte[] ins) {
-        comparaEAtualizaCC(reg1(ins).getIntVal(), reg2(ins).getIntVal()); // (r1) : (r2)
+        comparaEAtualizaCC(reg1(ins).getIntVal(), reg2(ins).getIntVal());
     }
 
     private void tixr(byte[] ins) {
-        // X <- (X) + 1; (X) : (r1)
-        // Relê X após gravar para comparar o valor já truncado em 24 bits
         registradores[1].setIntVal(registradores[1].getIntVal() + 1);
         comparaEAtualizaCC(registradores[1].getIntVal(), reg1(ins).getIntVal());
     }
 
     private void rmo(byte[] ins) {
-        reg2(ins).setIntVal(reg1(ins).getIntVal()); // r2 <- (r1)
+        reg2(ins).setIntVal(reg1(ins).getIntVal());
     }
 
     private void clear(byte[] ins) {
-        reg1(ins).setIntVal(0); // r1 <- 0
+        reg1(ins).setIntVal(0);
     }
 
     private void shiftl(byte[] ins) {
-        int n = (ins[1] & 0x0F) + 1; // o montador grava (n - 1) no campo r2
-        int val = reg1(ins).getIntVal() & 0xFFFFFF;
-        // Rotação circular em 24 bits: o que sai pela esquerda entra pela direita.
-        // Os bits acima do 24º são descartados pelo próprio setIntVal.
-        reg1(ins).setIntVal((val << n) | (val >>> (24 - n)));
+        int n = (ins[1] & 0x0F) + 1; 
+        int val = reg1(ins).getIntVal();
+        reg1(ins).setIntVal((val << n) & 0xFFFFFF); // Shift lógico com máscara de 24 bits
     }
 
     private void shiftr(byte[] ins) {
-        int n = (ins[1] & 0x0F) + 1; // o montador grava (n - 1) no campo r2
-        // getIntVal() já estende o sinal, então '>>' preenche com o bit de sinal
+        int n = (ins[1] & 0x0F) + 1;
         reg1(ins).setIntVal(reg1(ins).getIntVal() >> n);
     }
     
-    //Grupo 5: Controle de Fluxo e Subrotinas (F3/4)
+    // --- GRUPO 5: Controle de Fluxo e Subrotinas (F3/4) ---
     private void jeq(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        
-        // JEQ: PC <- m se CC for igual a "="[cite: 1]
         if (getConditionCode() == Condicional.Igual) {
-            // Realiza o salto modificando o PC (registrador 8)
             registradores[8].setIntVal(targetAddress);
         }
     }
     
     private void j(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        
-        // J: PC <- m (Salto incondicional)
         registradores[8].setIntVal(targetAddress);
     }
 
     private void jgt(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        
-        // JGT: PC <- m se CC for igual a ">"
         if (getConditionCode() == Condicional.Maior) {
             registradores[8].setIntVal(targetAddress);
         }
@@ -634,8 +520,6 @@ public class MaquinaSic implements  Maquina {
 
     private void jlt(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        
-        // JLT: PC <- m se CC for igual a "<"
         if (getConditionCode() == Condicional.Menor) {
             registradores[8].setIntVal(targetAddress);
         }
@@ -643,18 +527,11 @@ public class MaquinaSic implements  Maquina {
 
     private void jsub(byte[] ins) {
         int targetAddress = decodeFlags(ins);
-        
-        // JSUB: L <- (PC); PC <- m
-        // Salva o endereço de retorno (conteúdo atual do PC) no registrador L (índice 2)
         registradores[2].setIntVal(registradores[8].getIntVal());
-        
-        // Realiza o salto para o endereço da subrotina
         registradores[8].setIntVal(targetAddress);
     }
 
     private void rsub(byte[] ins) {
-        // RSUB: PC <- (L)
-        // Retorna da subrotina restaurando no PC o endereço salvo em L (índice 2)
         registradores[8].setIntVal(registradores[2].getIntVal());
     }
 }
